@@ -1,0 +1,197 @@
+Given an op_id, give room number of patients currently staying in the hospital who have undergone this type of operation:
+ 
+
+
+set search_path to hospital;
+CREATE OR REPLACE FUNCTION func(OP_ID integer)
+RETURNS TABLE(PID integer, Room_number integer) as $BODY$
+DECLARE
+        s integer;
+        pd integer;
+        rn integer;
+
+
+BEGIN
+        s:=op_id;
+        
+        SELECT op.pid into pd FROM OPERATES AS op JOIN (SELECT * FROM STAYS_IN natural JOIN PATIENT) AS si ON op.pid=si.pid
+WHERE op.OP_ID=s and si.discharged_on is NULL;
+        SELECT si.room_number into rn FROM OPERATES AS op JOIN (SELECT * FROM STAYS_IN natural JOIN PATIENT) AS si ON op.pid=si.pid
+WHERE op.OP_ID=s and si.discharged_on is NULL;
+
+
+        RETURN QUERY VALUES (pd,rn);
+END
+$BODY$ LANGUAGE plpgsql;
+
+
+select * from func(op_id);
+
+
+
+
+
+
+Lab Bill: Give total test charge of the patient named = ‘x’
+
+
+
+
+
+
+set search_path to hospital;
+CREATE OR REPLACE FUNCTION testcost(_name varchar)
+RETURNS integer as $BODY$
+DECLARE
+        count integer;
+BEGIN
+        
+        select sum(rate) into count from (select * from patient natural join takes_tests)  as a join tests on a.tid=tests.tid and a._date=tests._date where a.name=_name;
+
+
+        RETURN count;
+END
+$BODY$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+select testcost(‘name’);
+
+
+
+
+
+
+Total Cost of Patient:
+
+
+set search_path to hospital;
+CREATE OR REPLACE FUNCTION patientcost(_name varchar)
+RETURNS integer as $BODY$
+DECLARE
+        count1 integer;
+        count2 integer;
+        count3 integer;
+        total integer;
+BEGIN
+        total:=0;
+        select sum(rate) into count1 from (select * from patient natural join takes_tests)  as a join tests on a.tid=tests.tid and a._date=tests._date where a.name=_name;
+        select sum(rates) into count2 from (select * from operates natural join operations) as a natural join patient where name=_name group by name;
+select sum(rate) into count3 from (select * from patient natural join (select * from stays_in 
+join (select room_number,_date as d,rate from rooms natural join room_map) as r on r.room_number=stays_in.room_number) as b 
+where b.d>=admitted_on and b.d<=discharged_on and patient.name=_name) as c;
+
+
+        if count1 is not NULL then
+                total=total+count1;
+        end if;
+        if count2 is not NULL then
+                total=total+count2;
+        end if;        
+        if count3 is not NULL then
+                total=total+count3;
+        end if;        
+
+
+        RETURN total;
+END
+$BODY$ LANGUAGE plpgsql
+
+
+
+
+
+
+select patientcost(‘name’);
+
+
+Total Income of hospital:
+set search_path to hospital;
+
+
+set search_path to hospital;
+CREATE OR REPLACE FUNCTION totalincome(date1 date,date2 date)
+RETURNS integer as $BODY$
+DECLARE
+        count1 integer;
+        count2 integer;
+        count3 integer;
+        total integer; 
+        rec record;
+        rec2 record;
+        xyz date;
+        abc integer;
+BEGIN
+        total:=0;
+        for rec in select distinct _date from tests where _date>=date1 and _date<=date2
+        loop
+        xyz=rec._date;
+        
+        for rec2 in select distinct pid from patient
+        loop 
+        abc=rec2.pid;
+select sum(rate) into count1 from (select * from patient natural join (select * from stays_in 
+join (select room_number,_date as d,rate from rooms natural join room_map) as r on r.room_number=stays_in.room_number) as b 
+where b.d=xyz and b.d>=admitted_on and b.d<=discharged_on and patient.pid=abc) as c;
+        select sum(rate) into count2 from (select * from patient natural join takes_tests)  as a join tests on a.tid=tests.tid and a._date=tests._date and a._date=xyz where a.pid=abc;
+        select sum(rates) into count3 from (select * from operates natural join operations) as a natural join patient where pid=abc and a._date=xyz group by name;
+
+
+        if count1 is not NULL then
+                total=total+count1;
+        end if;
+        if count2 is not NULL then
+                total=total+count2;
+        end if;        
+        if count3 is not NULL then
+                total=total+count3;
+        end if;        
+        end loop;
+        end loop;
+        RETURN total;
+END
+$BODY$ LANGUAGE plpgsql
+
+
+set search_path to hospital;
+
+
+select totalincome('2017/11/03','2017/11/07');
+
+
+
+
+Given did tell the number of patients operated by the doctor:
+
+
+set search_path to hospital;
+CREATE OR REPLACE FUNCTION patient_count(did integer)
+RETURNS integer as $BODY$
+DECLARE
+        t treats%rowtype;
+        count integer;
+BEGIN
+count:=0;
+FOR t IN SELECT * FROM TREATS
+LOOP
+IF t.did=did THEN
+count:= count+1;
+END IF;
+END LOOP;
+RETURN count;        
+END
+$BODY$ LANGUAGE plpgsql;
+
+
+
+
+
+
+SELECT patient_count(10);

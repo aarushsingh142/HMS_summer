@@ -1,0 +1,114 @@
+CREATE SCHEMA hospital;
+
+
+CREATE TABLE Patient (
+PID integer,
+Name VARCHAR,
+Admitted_on Date,
+Discharged_on Date,
+PRIMARY KEY (PID)
+);
+
+
+CREATE TABLE Rooms (
+RID integer,
+_Date date,
+Type varchar,
+Rate integer,
+PRIMARY KEY (RID,_Date)
+);
+
+
+create table Room_map(
+Room_number integer,
+RID integer,
+PRIMARY KEY (Room_number)
+);
+
+
+CREATE TABLE Stays_in (
+PID integer,
+Room_number integer,
+_Date date,
+PRIMARY KEY (PID,Room_number,_Date),
+FOREIGN KEY (PID) REFERENCES Patient(PID)
+ON DELETE SET DEFAULT ON UPDATE CASCADE,
+FOREIGN KEY (Room_number) REFERENCES Room_map(Room_number)
+ON DELETE SET DEFAULT ON UPDATE CASCADE
+);
+
+
+CREATE TABLE Doctor (
+DID integer,
+Name varchar,
+OPD_number integer,
+PRIMARY KEY (DID)
+);
+
+
+CREATE TABLE Treats (
+PID integer,
+DID integer,
+Medicines varchar,
+Test_ID integer,
+Details varchar,
+_Date date,
+PRIMARY KEY (PID,DID,_Date),
+FOREIGN KEY (PID) REFERENCES Patient(PID)
+ON DELETE SET DEFAULT ON UPDATE CASCADE,
+FOREIGN KEY (DID) REFERENCES Doctor(DID)
+ON DELETE SET DEFAULT ON UPDATE CASCADE
+);
+
+
+CREATE TABLE Operations (
+OP_ID integer,
+_Date date,
+OP_Name varchar,
+OT_Number integer,
+Rate integer,
+PRIMARY KEY (OP_ID,_Date)
+);
+
+
+CREATE TABLE Operates (
+OP_ID integer,
+_Date date,
+PID integer,
+DID integer,
+PRIMARY KEY (PID,OP_ID,_Date),
+FOREIGN KEY (PID) REFERENCES Patient(PID)
+ON DELETE SET DEFAULT ON UPDATE CASCADE,
+FOREIGN KEY (OP_ID,_Date) REFERENCES Operations(OP_ID,_Date)
+ON DELETE SET DEFAULT ON UPDATE CASCADE,
+FOREIGN KEY (DID) REFERENCES Doctor(DID)
+ON DELETE SET DEFAULT ON UPDATE CASCADE
+);
+
+
+CREATE TABLE Tests (
+TID integer,
+_Date date,
+Name varchar,
+Rate integer,
+PRIMARY KEY (TID,_Date)
+);
+
+
+CREATE TABLE Takes_Tests (
+PID integer,
+TID integer,
+_Date date,
+Document varchar,
+Remarks varchar,
+wbc_count integer,
+rbc_count integer,
+platelets_count integer,
+haemoglobin_count float(20),
+sugar_count integer,
+PRIMARY KEY (PID,TID,_Date),
+FOREIGN KEY (PID) REFERENCES Patient(PID)
+ON DELETE SET DEFAULT ON UPDATE CASCADE,
+FOREIGN KEY (TID,_Date) REFERENCES Tests(TID,_Date)
+ON DELETE SET DEFAULT ON UPDATE CASCADE
+);
